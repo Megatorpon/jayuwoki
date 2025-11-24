@@ -117,7 +117,7 @@ public class Commands extends ListenerAdapter {
                     privaditaResultado.ResultadoPrivadita(comando[1], event);
                     
                     // Actualizar jugadores en Firebase
-                    dbManager.updatePlayers(event, privaditaResultado.getPlayers());
+                    // dbManager.updatePlayers(event, privaditaResultado.getPlayers());
                     
                     // Limpiar privadita
                     dbManager.clearActivePrivadita(event);

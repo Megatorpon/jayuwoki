@@ -85,7 +85,7 @@ public class Player {
      * @param averageEnemyElo El Elo promedio del equipo enemigo
      * @param won true si el jugador ganó la partida, false si perdió
      */
-    public void ActualizarElo(double averageEnemyElo, boolean won) {
+    public void ActualizarElo(double averageEnemyElo, boolean won, float multiplier) {
         // Constante K - En LoL varía según el rango y partidas jugadas
         // Usamos K=32 como valor estándar (balance entre cambios significativos y estabilidad)
         final int K = 32;
@@ -99,7 +99,7 @@ public class Player {
         
         // Calcular el cambio de Elo
         // ΔElo = K × (S - E) donde S es el resultado real y E es el esperado
-        int eloChange = (int) Math.round(K * (actualScore - expectedScore));
+        int eloChange = (int) ((Math.round(K * (actualScore - expectedScore)))*multiplier);
         
         // Aplicar el cambio al Elo actual
         int newElo = this.elo.get() + eloChange;

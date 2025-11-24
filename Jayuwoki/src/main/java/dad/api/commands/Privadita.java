@@ -1,6 +1,9 @@
 package dad.api.commands;
 
 import dad.database.Player;
+import dad.specials.PrivaditaEspecial;
+import dad.specials.SpecialContext;
+import dad.specials.factory.CreadorDePrivaditas;
 import javafx.beans.property.ListProperty;
 import javafx.beans.property.SimpleListProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -13,11 +16,16 @@ import java.util.*;
 
 public class Privadita {
 
-  // Attributes
+  // Base Attributes
   private MessageReceivedEvent event;
   private ListProperty<Player> players = new SimpleListProperty<>(FXCollections.observableArrayList());
   private StringProperty server = new SimpleStringProperty();
   private final ArrayList<String> roles = new ArrayList<>(List.of("Top", "Jungla", "Mid", "ADC", "Support"));
+
+  // Special Matches Attributes
+  private float eloMultiplier = 1f;
+  private boolean esPrivadaEspecial = false;
+  private String tipoPrivadaEspecial = "";
 
   // Helper class to store team split
   private static class TeamSplit {
@@ -47,7 +55,8 @@ public class Privadita {
   // java
   private void StartPrivadita(MessageReceivedEvent event) {
     Random rand = new Random();
-    int privaditaEspecial = rand.nextInt(21); // 0..20
+    // int privaditaEspecial = rand.nextInt(21); // 0..20
+    int privaditaEspecial = 1;
     System.out.println("Número aleatorio para privadita especial: " + privaditaEspecial);
 
     ObservableList<Player> playerList = this.players.get();
@@ -72,27 +81,15 @@ public class Privadita {
     List<String> blueRoles = new ArrayList<>(Collections.nCopies(5, ""));
     List<String> redRoles = new ArrayList<>(Collections.nCopies(5, ""));
 
-    if (privaditaEspecial == 20) {
-      // Caso especial: no asignar roles explícitos
-      for (int i = 0; i < 5; i++) {
-        blueRoles.set(i, "");
-        redRoles.set(i, "");
-      }
-      // print special message to chat
-        event.getChannel().sendMessage("\uD83D\uDD25 Freemolly labubu ayiyi ahora no tienen excusa").queue();
-    } else if (privaditaEspecial >= 15) {
-      // 15..19: un jugador por equipo recibe '*' en su rol
-      int blueSpecialIndex = rand.nextInt(5);
-      int redSpecialIndex = rand.nextInt(5);
-      for (int i = 0; i < 5; i++) {
-        String base = baseRoles.get(i % roleCount);
-        blueRoles.set(i, (i == blueSpecialIndex) ? base + "*" : base);
-        redRoles.set(i, (i == redSpecialIndex) ? base + "*" : base);
-      }
-      //print to chat who are the special players
-        event.getChannel().sendMessage("\uD83D\uDD25 Atención: " + blueTeam.get(blueSpecialIndex).getName() + " y " + redTeam.get(redSpecialIndex).getName() + " pueden cambiar su rol con cualquier miembro del equipo (*)").queue();
+    SpecialContext ctx = new SpecialContext(baseList, blueRoles, redRoles, blueTeam, redTeam, baseRoles, event, rand, eloMultiplier);
+    PrivaditaEspecial privEspecial = CreadorDePrivaditas.fromNumber(privaditaEspecial);
 
-    } else {
+    if (privEspecial != null){
+      esPrivadaEspecial = true;
+      privEspecial.Crear(ctx);
+      tipoPrivadaEspecial = privEspecial.getClass().getSimpleName();
+    }
+    else{
       // Caso normal: roles por defecto
       for (int i = 0; i < 5; i++) {
         String base = baseRoles.get(i % roleCount);
@@ -100,6 +97,35 @@ public class Privadita {
         redRoles.set(i, base);
       }
     }
+    
+    // if (privaditaEspecial == 20) {
+    //   // Caso especial: no asignar roles explícitos
+    //   for (int i = 0; i < 5; i++) {
+    //     blueRoles.set(i, "");
+    //     redRoles.set(i, "");
+    //   }
+    //   // print special message to chat
+    //     event.getChannel().sendMessage("\uD83D\uDD25 Freemolly labubu ayiyi ahora no tienen excusa").queue();
+    // } else if (privaditaEspecial >= 15) {
+    //   // 15..19: un jugador por equipo recibe '*' en su rol
+    //   int blueSpecialIndex = rand.nextInt(5);
+    //   int redSpecialIndex = rand.nextInt(5);
+    //   for (int i = 0; i < 5; i++) {
+    //     String base = baseRoles.get(i % roleCount);
+    //     blueRoles.set(i, (i == blueSpecialIndex) ? base + "*" : base);
+    //     redRoles.set(i, (i == redSpecialIndex) ? base + "*" : base);
+    //   }
+    //   //print to chat who are the special players
+    //     event.getChannel().sendMessage("\uD83D\uDD25 Atención: " + blueTeam.get(blueSpecialIndex).getName() + " y " + redTeam.get(redSpecialIndex).getName() + " pueden cambiar su rol con cualquier miembro del equipo (*)").queue();
+
+    // } else {
+    //   // Caso normal: roles por defecto
+    //   for (int i = 0; i < 5; i++) {
+    //     String base = baseRoles.get(i % roleCount);
+    //     blueRoles.set(i, base);
+    //     redRoles.set(i, base);
+    //   }
+    // }
 
     // Asignar roles finales (una sola vez)
     for (int i = 0; i < 5; i++) {
@@ -249,11 +275,35 @@ public class Privadita {
 
     switch (ganador) {
       case "blue":
-        messageBuilder.append("\n🏆 **Equipo Azul ha ganado!** 🏆\n");
-        break;
+        if (esPrivadaEspecial){
+          switch(tipoPrivadaEspecial){
+            case "PrivaditaIlusion":
+              eloMultiplier = 1.7f;
+              
+              messageBuilder.append("\n📣📣 **AYIYI** 📣📣\n");
+            break;
+          }
+        }
+
+        else
+          messageBuilder.append("\n🏆 **Equipo Azul ha ganado!** 🏆\n");
+      break;
+
       case "red":
-        messageBuilder.append("\n🔥 **Equipo Rojo ha ganado!** 🔥\n");
-        break;
+        if (esPrivadaEspecial){
+          switch(tipoPrivadaEspecial){
+            case "PrivaditaIlusion":
+              eloMultiplier = 0.5f;
+              
+              messageBuilder.append("\n🙏 **Se bregó** 🙏\n");
+            break;
+          }
+        }
+
+        else
+          messageBuilder.append("\n🔥 **Equipo Rojo ha ganado!** 🔥\n");
+      break;
+
       default:
         event.getChannel().sendMessage("Pon el equipo bien tolete").queue();
         return;
@@ -267,8 +317,8 @@ public class Privadita {
         players.get(i + 5).setLosses(players.get(i + 5).getLosses() + 1);
         int oldEloWin = players.get(i).getElo();
         int oldEloLose = players.get(i + 5).getElo();
-        players.get(i).ActualizarElo(averageEloEquipo2, true);
-        players.get(i + 5).ActualizarElo(averageEloEquipo1, false);
+        players.get(i).ActualizarElo(averageEloEquipo2, true, eloMultiplier);
+        players.get(i + 5).ActualizarElo(averageEloEquipo1, false, eloMultiplier);
 
         messageBuilder.append(players.get(i).getName()).append(": ")
                 .append(oldEloWin).append(" ➝ ").append(players.get(i).getElo())
@@ -282,8 +332,8 @@ public class Privadita {
         players.get(i).setLosses(players.get(i).getLosses() + 1);
         int oldEloWin = players.get(i + 5).getElo();
         int oldEloLose = players.get(i).getElo();
-        players.get(i + 5).ActualizarElo(averageEloEquipo1, true);
-        players.get(i).ActualizarElo(averageEloEquipo2, false);
+        players.get(i + 5).ActualizarElo(averageEloEquipo1, true, eloMultiplier);
+        players.get(i).ActualizarElo(averageEloEquipo2, false, eloMultiplier);
 
         messageBuilder.append(players.get(i + 5).getName()).append(": ")
                 .append(oldEloWin).append(" ➝ ").append(players.get(i + 5).getElo())
